@@ -1,0 +1,295 @@
+name: Crear APK
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Preparar Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "17"
+
+      - name: Preparar Gradle
+        uses: gradle/actions/setup-gradle@v4
+        with:
+          gradle-version: "8.9"
+
+      - name: Instalar Android SDK
+        run: |
+          yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
+          "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platforms;android-35" "build-tools;35.0.0"
+
+      - name: Crear juego
+        run: |
+          mkdir -p app/src/main/java/com/misionreciclaje/app
+
+          cat > settings.gradle <<'EOF'
+          pluginManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+                  gradlePluginPortal()
+              }
+          }
+
+          dependencyResolutionManagement {
+              repositories {
+                  google()
+                  mavenCentral()
+              }
+          }
+
+          rootProject.name = 'MisionReciclaje'
+          include ':app'
+          EOF
+
+          cat > build.gradle <<'EOF'
+          plugins {
+              id 'com.android.application' version '8.7.3' apply false
+          }
+          EOF
+
+          cat > app/build.gradle <<'EOF'
+          plugins {
+              id 'com.android.application'
+          }
+
+          android {
+              namespace 'com.misionreciclaje.app'
+              compileSdk 35
+
+              defaultConfig {
+                  applicationId 'com.misionreciclaje.app'
+                  minSdk 23
+                  targetSdk 35
+                  versionCode 1
+                  versionName '1.0'
+              }
+
+              compileOptions {
+                  sourceCompatibility JavaVersion.VERSION_17
+                  targetCompatibility JavaVersion.VERSION_17
+              }
+          }
+          EOF
+
+          cat > app/src/main/AndroidManifest.xml <<'EOF'
+          <manifest xmlns:android="http://schemas.android.com/apk/res/android">
+              <application
+                  android:label="Misión Reciclaje"
+                  android:theme="@android:style/Theme.Material.Light.NoActionBar">
+
+                  <activity
+                      android:name=".MainActivity"
+                      android:screenOrientation="portrait"
+                      android:exported="true">
+
+                      <intent-filter>
+                          <action android:name="android.intent.action.MAIN"/>
+                          <category android:name="android.intent.category.LAUNCHER"/>
+                      </intent-filter>
+
+                  </activity>
+              </application>
+          </manifest>
+          EOF
+
+          cat > app/src/main/java/com/misionreciclaje/app/MainActivity.java <<'EOF'
+          package com.misionreciclaje.app;
+
+          import android.app.Activity;
+          import android.os.Bundle;
+          import android.os.Handler;
+          import android.graphics.Color;
+          import android.graphics.Typeface;
+          import android.view.Gravity;
+          import android.view.View;
+          import android.widget.Button;
+          import android.widget.LinearLayout;
+          import android.widget.TextView;
+
+          public class MainActivity extends Activity {
+
+              String[] objetos = {
+                  "🍌 Cáscara de banano",
+                  "🧴 Botella de plástico",
+                  "📄 Papel"
+              };
+
+              String[] respuestas = {
+                  "Orgánico",
+                  "Plástico",
+                  "Papel"
+              };
+
+              String[] opciones = {
+                  "Orgánico",
+                  "Plástico",
+                  "Papel"
+              };
+
+              int ronda = 0;
+              int puntos = 0;
+              boolean bloqueado = false;
+
+              TextView marcador;
+              TextView objeto;
+              TextView mensaje;
+
+              Button[] botones = new Button[3];
+
+              @Override
+              protected void onCreate(Bundle savedInstanceState) {
+                  super.onCreate(savedInstanceState);
+
+                  LinearLayout principal = new LinearLayout(this);
+                  principal.setOrientation(LinearLayout.VERTICAL);
+                  principal.setGravity(Gravity.CENTER_HORIZONTAL);
+                  principal.setPadding(36, 50, 36, 36);
+                  principal.setBackgroundColor(Color.rgb(229, 245, 225));
+
+                  TextView titulo = crearTexto("🌎 MISIÓN RECICLAJE", 27);
+                  titulo.setTypeface(null, Typeface.BOLD);
+                  principal.addView(titulo);
+
+                  marcador = crearTexto("Puntos: 0", 21);
+                  marcador.setPadding(0, 30, 0, 20);
+                  principal.addView(marcador);
+
+                  TextView indicacion = crearTexto(
+                      "Toca el recipiente correcto",
+                      18
+                  );
+                  principal.addView(indicacion);
+
+                  objeto = crearTexto("", 31);
+                  objeto.setGravity(Gravity.CENTER);
+                  objeto.setPadding(0, 100, 0, 70);
+                  objeto.setTypeface(null, Typeface.BOLD);
+                  principal.addView(objeto);
+
+                  mensaje = crearTexto("¿Dónde debe ir?", 19);
+                  mensaje.setGravity(Gravity.CENTER);
+                  mensaje.setPadding(0, 0, 0, 25);
+                  principal.addView(mensaje);
+
+                  for (int i = 0; i < 3; i++) {
+                      Button boton = new Button(this);
+                      boton.setText(opciones[i]);
+                      boton.setTextSize(19);
+                      boton.setTag(i);
+
+                      boton.setOnClickListener(v -> {
+                          int numero = (Integer) v.getTag();
+                          responder(numero);
+                      });
+
+                      botones[i] = boton;
+                      principal.addView(boton);
+                  }
+
+                  setContentView(principal);
+                  mostrarPregunta();
+              }
+
+              TextView crearTexto(String texto, int tamano) {
+                  TextView vista = new TextView(this);
+                  vista.setText(texto);
+                  vista.setTextSize(tamano);
+                  vista.setTextColor(Color.rgb(27, 75, 43));
+                  vista.setGravity(Gravity.CENTER);
+                  return vista;
+              }
+
+              void mostrarPregunta() {
+                  bloqueado = false;
+
+                  marcador.setText("Puntos: " + puntos);
+                  objeto.setText(objetos[ronda]);
+                  mensaje.setText("¿Dónde debe ir?");
+                  mensaje.setTextColor(Color.rgb(27, 75, 43));
+              }
+
+              void responder(int numero) {
+
+                  if (ronda >= 3) {
+                      reiniciar();
+                      return;
+                  }
+
+                  if (bloqueado) return;
+
+                  if (opciones[numero].equals(respuestas[ronda])) {
+
+                      bloqueado = true;
+                      puntos += 10;
+
+                      marcador.setText("Puntos: " + puntos);
+                      mensaje.setText("✅ ¡Correcto! +10 puntos");
+                      mensaje.setTextColor(Color.rgb(30, 120, 45));
+
+                      new Handler(getMainLooper()).postDelayed(() -> {
+
+                          ronda++;
+
+                          if (ronda < 3) {
+                              mostrarPregunta();
+                          } else {
+                              terminarJuego();
+                          }
+
+                      }, 1000);
+
+                  } else {
+
+                      mensaje.setText("❌ ¡Incorrecto! Intenta otra vez");
+                      mensaje.setTextColor(Color.rgb(190, 35, 35));
+                  }
+              }
+
+              void terminarJuego() {
+
+                  marcador.setText("Puntos: " + puntos);
+                  objeto.setText("🏅 ¡MISIÓN COMPLETADA!");
+                  mensaje.setText(
+                      "¡Excelente! Obtuviste " + puntos + " puntos"
+                  );
+                  mensaje.setTextColor(Color.rgb(30, 120, 45));
+
+                  botones[0].setText("🔄 Jugar otra vez");
+
+                  botones[1].setVisibility(View.GONE);
+                  botones[2].setVisibility(View.GONE);
+
+                  bloqueado = false;
+              }
+
+              void reiniciar() {
+
+                  ronda = 0;
+                  puntos = 0;
+
+                  botones[0].setText("Orgánico");
+                  botones[1].setVisibility(View.VISIBLE);
+                  botones[2].setVisibility(View.VISIBLE);
+
+                  mostrarPregunta();
+              }
+          }
+          EOF
+
+      - name: Compilar APK
+        run: gradle --no-daemon :app:assembleDebug
+
+      - name: Guardar APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: MisionReciclaje-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
