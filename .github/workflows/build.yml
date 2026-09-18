@@ -69,8 +69,8 @@ jobs:
                   applicationId 'com.misionreciclaje.app'
                   minSdk 23
                   targetSdk 35
-                  versionCode 1
-                  versionName '1.0'
+                  versionCode 2
+                  versionName '2.0'
               }
 
               compileOptions {
@@ -106,6 +106,7 @@ jobs:
 
           import android.app.Activity;
           import android.os.Bundle;
+          import android.os.CountDownTimer;
           import android.os.Handler;
           import android.graphics.Color;
           import android.graphics.Typeface;
@@ -113,174 +114,458 @@ jobs:
           import android.view.View;
           import android.widget.Button;
           import android.widget.LinearLayout;
+          import android.widget.ScrollView;
           import android.widget.TextView;
 
           public class MainActivity extends Activity {
 
               String[] objetos = {
                   "🍌 Cáscara de banano",
-                  "🧴 Botella de plástico",
-                  "📄 Papel"
+                  "🍎 Corazón de manzana",
+                  "🍂 Hojas secas",
+                  "🍚 Restos de comida",
+                  "🧴 Botella plástica vacía y limpia",
+                  "🥫 Lata de aluminio",
+                  "🍶 Frasco de vidrio limpio",
+                  "📦 Caja de cartón limpia",
+                  "🍕 Caja de pizza manchada de grasa",
+                  "🧻 Papel higiénico o servilleta usada",
+                  "🍬 Envoltura metalizada de golosina",
+                  "☕ Taza de cerámica rota"
               };
 
               String[] respuestas = {
-                  "Orgánico",
-                  "Plástico",
-                  "Papel"
+                  "O",
+                  "O",
+                  "O",
+                  "O",
+                  "A",
+                  "A",
+                  "A",
+                  "A",
+                  "N",
+                  "N",
+                  "N",
+                  "N"
               };
 
-              String[] opciones = {
+              String[] explicaciones = {
+                  "La cáscara es de origen biológico y se descompone naturalmente.",
+                  "Los restos de frutas son residuos orgánicos y pueden descomponerse.",
+                  "Las hojas secas son materia vegetal biodegradable.",
+                  "Los restos de comida son residuos orgánicos.",
+                  "Una botella plástica limpia y vacía puede recuperarse para reciclaje.",
+                  "El aluminio puede recuperarse y reciclarse muchas veces.",
+                  "Un frasco de vidrio limpio puede ser aprovechado y reciclado.",
+                  "El cartón limpio puede recuperarse para fabricar nuevo papel o cartón.",
+                  "La grasa contamina el cartón y dificulta su reciclaje.",
+                  "El papel higiénico o la servilleta usada está contaminada y no debe reciclarse con papel limpio.",
+                  "Las envolturas metalizadas suelen combinar varias capas de materiales y no se reciclan con los plásticos comunes.",
+                  "La cerámica no es vidrio y no debe mezclarse con los envases de vidrio reciclables."
+              };
+
+              String[] nombresCategorias = {
                   "Orgánico",
-                  "Plástico",
-                  "Papel"
+                  "Inorgánico aprovechable",
+                  "Inorgánico no aprovechable"
+              };
+
+              String[] codigos = {
+                  "O",
+                  "A",
+                  "N"
               };
 
               int ronda = 0;
               int puntos = 0;
               boolean bloqueado = false;
 
+              TextView progreso;
               TextView marcador;
+              TextView temporizador;
               TextView objeto;
               TextView mensaje;
 
               Button[] botones = new Button[3];
 
+              CountDownTimer reloj;
+
               @Override
               protected void onCreate(Bundle savedInstanceState) {
                   super.onCreate(savedInstanceState);
 
+                  ScrollView scroll = new ScrollView(this);
+
                   LinearLayout principal = new LinearLayout(this);
                   principal.setOrientation(LinearLayout.VERTICAL);
                   principal.setGravity(Gravity.CENTER_HORIZONTAL);
-                  principal.setPadding(36, 50, 36, 36);
-                  principal.setBackgroundColor(Color.rgb(229, 245, 225));
+                  principal.setPadding(34, 42, 34, 40);
+                  principal.setBackgroundColor(Color.rgb(230, 246, 228));
 
                   TextView titulo = crearTexto("🌎 MISIÓN RECICLAJE", 27);
                   titulo.setTypeface(null, Typeface.BOLD);
                   principal.addView(titulo);
 
+                  progreso = crearTexto("Pregunta 1 de 12", 17);
+                  progreso.setPadding(0, 20, 0, 5);
+                  principal.addView(progreso);
+
                   marcador = crearTexto("Puntos: 0", 21);
-                  marcador.setPadding(0, 30, 0, 20);
+                  marcador.setTypeface(null, Typeface.BOLD);
                   principal.addView(marcador);
 
-                  TextView indicacion = crearTexto(
-                      "Toca el recipiente correcto",
-                      18
-                  );
-                  principal.addView(indicacion);
+                  temporizador = crearTexto("⏱ 5 segundos", 25);
+                  temporizador.setTypeface(null, Typeface.BOLD);
+                  temporizador.setTextColor(Color.rgb(190, 40, 35));
+                  temporizador.setPadding(0, 18, 0, 18);
+                  principal.addView(temporizador);
 
-                  objeto = crearTexto("", 31);
-                  objeto.setGravity(Gravity.CENTER);
-                  objeto.setPadding(0, 100, 0, 70);
+                  TextView instruccion = crearTexto(
+                      "Clasifica el residuo antes de que termine el tiempo",
+                      17
+                  );
+                  principal.addView(instruccion);
+
+                  objeto = crearTexto("", 29);
                   objeto.setTypeface(null, Typeface.BOLD);
+                  objeto.setGravity(Gravity.CENTER);
+                  objeto.setPadding(10, 55, 10, 45);
                   principal.addView(objeto);
 
-                  mensaje = crearTexto("¿Dónde debe ir?", 19);
+                  mensaje = crearTexto("¿Dónde debe ir?", 18);
                   mensaje.setGravity(Gravity.CENTER);
-                  mensaje.setPadding(0, 0, 0, 25);
+                  mensaje.setPadding(10, 0, 10, 28);
                   principal.addView(mensaje);
 
-                  for (int i = 0; i < 3; i++) {
-                      Button boton = new Button(this);
-                      boton.setText(opciones[i]);
-                      boton.setTextSize(19);
-                      boton.setTag(i);
+                  botones[0] = crearBoton(
+                      "🌱 Orgánico",
+                      Color.rgb(46, 125, 50),
+                      0
+                  );
 
-                      boton.setOnClickListener(v -> {
-                          int numero = (Integer) v.getTag();
-                          responder(numero);
-                      });
+                  botones[1] = crearBoton(
+                      "♻️ Inorgánico\naprovechable",
+                      Color.rgb(30, 105, 185),
+                      1
+                  );
 
-                      botones[i] = boton;
-                      principal.addView(boton);
-                  }
+                  botones[2] = crearBoton(
+                      "🗑️ Inorgánico\nno aprovechable",
+                      Color.rgb(105, 80, 65),
+                      2
+                  );
 
-                  setContentView(principal);
+                  principal.addView(botones[0]);
+                  principal.addView(botones[1]);
+                  principal.addView(botones[2]);
+
+                  scroll.addView(principal);
+                  setContentView(scroll);
+
                   mostrarPregunta();
               }
 
+              Button crearBoton(String texto, int color, int indice) {
+
+                  Button boton = new Button(this);
+
+                  boton.setText(texto);
+                  boton.setTextSize(18);
+                  boton.setTextColor(Color.WHITE);
+                  boton.setAllCaps(false);
+                  boton.setGravity(Gravity.CENTER);
+                  boton.setBackgroundColor(color);
+                  boton.setTag(indice);
+                  boton.setMinHeight(115);
+
+                  LinearLayout.LayoutParams parametros =
+                      new LinearLayout.LayoutParams(
+                          LinearLayout.LayoutParams.MATCH_PARENT,
+                          LinearLayout.LayoutParams.WRAP_CONTENT
+                      );
+
+                  parametros.setMargins(0, 7, 0, 7);
+                  boton.setLayoutParams(parametros);
+
+                  boton.setOnClickListener(v -> {
+                      int numero = (Integer) v.getTag();
+                      responder(numero);
+                  });
+
+                  return boton;
+              }
+
               TextView crearTexto(String texto, int tamano) {
+
                   TextView vista = new TextView(this);
+
                   vista.setText(texto);
                   vista.setTextSize(tamano);
-                  vista.setTextColor(Color.rgb(27, 75, 43));
+                  vista.setTextColor(Color.rgb(28, 76, 44));
                   vista.setGravity(Gravity.CENTER);
+
                   return vista;
               }
 
               void mostrarPregunta() {
+
                   bloqueado = false;
 
+                  progreso.setText(
+                      "Pregunta " + (ronda + 1) + " de " + objetos.length
+                  );
+
                   marcador.setText("Puntos: " + puntos);
+
                   objeto.setText(objetos[ronda]);
+
                   mensaje.setText("¿Dónde debe ir?");
-                  mensaje.setTextColor(Color.rgb(27, 75, 43));
+                  mensaje.setTextColor(Color.rgb(28, 76, 44));
+
+                  iniciarTemporizador();
+              }
+
+              void iniciarTemporizador() {
+
+                  if (reloj != null) {
+                      reloj.cancel();
+                  }
+
+                  temporizador.setText("⏱ 5 segundos");
+                  temporizador.setTextColor(Color.rgb(190, 40, 35));
+
+                  reloj = new CountDownTimer(5000, 1000) {
+
+                      @Override
+                      public void onTick(long millisUntilFinished) {
+
+                          long segundos =
+                              Math.max(
+                                  1,
+                                  (millisUntilFinished + 999) / 1000
+                              );
+
+                          temporizador.setText(
+                              "⏱ " + segundos + " segundos"
+                          );
+                      }
+
+                      @Override
+                      public void onFinish() {
+
+                          if (bloqueado) return;
+
+                          bloqueado = true;
+
+                          puntos = Math.max(0, puntos - 5);
+
+                          marcador.setText(
+                              "Puntos: " + puntos
+                          );
+
+                          temporizador.setText("⏱ 0 segundos");
+
+                          mensaje.setText(
+                              "⌛ Tiempo agotado: -5 puntos\n" +
+                              "Respuesta: " +
+                              nombreRespuestaCorrecta()
+                          );
+
+                          mensaje.setTextColor(
+                              Color.rgb(185, 40, 35)
+                          );
+
+                          avanzarDespuesDePausa();
+                      }
+                  };
+
+                  reloj.start();
               }
 
               void responder(int numero) {
 
-                  if (ronda >= 3) {
-                      reiniciar();
-                      return;
-                  }
-
                   if (bloqueado) return;
 
-                  if (opciones[numero].equals(respuestas[ronda])) {
+                  if (
+                      codigos[numero]
+                          .equals(respuestas[ronda])
+                  ) {
 
                       bloqueado = true;
+
+                      if (reloj != null) {
+                          reloj.cancel();
+                      }
+
                       puntos += 10;
 
-                      marcador.setText("Puntos: " + puntos);
-                      mensaje.setText("✅ ¡Correcto! +10 puntos");
-                      mensaje.setTextColor(Color.rgb(30, 120, 45));
+                      marcador.setText(
+                          "Puntos: " + puntos
+                      );
 
-                      new Handler(getMainLooper()).postDelayed(() -> {
+                      mensaje.setText(
+                          "✅ ¡Correcto! +10 puntos"
+                      );
 
-                          ronda++;
+                      mensaje.setTextColor(
+                          Color.rgb(30, 125, 45)
+                      );
 
-                          if (ronda < 3) {
-                              mostrarPregunta();
-                          } else {
-                              terminarJuego();
-                          }
-
-                      }, 1000);
+                      avanzarDespuesDePausa();
 
                   } else {
 
-                      mensaje.setText("❌ ¡Incorrecto! Intenta otra vez");
-                      mensaje.setTextColor(Color.rgb(190, 35, 35));
+                      puntos = Math.max(
+                          0,
+                          puntos - 5
+                      );
+
+                      marcador.setText(
+                          "Puntos: " + puntos
+                      );
+
+                      mensaje.setText(
+                          "❌ -5 puntos\n" +
+                          explicaciones[ronda]
+                      );
+
+                      mensaje.setTextColor(
+                          Color.rgb(185, 40, 35)
+                      );
                   }
+              }
+
+              String nombreRespuestaCorrecta() {
+
+                  String codigo =
+                      respuestas[ronda];
+
+                  if (codigo.equals("O")) {
+                      return nombresCategorias[0];
+                  }
+
+                  if (codigo.equals("A")) {
+                      return nombresCategorias[1];
+                  }
+
+                  return nombresCategorias[2];
+              }
+
+              void avanzarDespuesDePausa() {
+
+                  new Handler(
+                      getMainLooper()
+                  ).postDelayed(() -> {
+
+                      ronda++;
+
+                      if (
+                          ronda < objetos.length
+                      ) {
+
+                          mostrarPregunta();
+
+                      } else {
+
+                          terminarJuego();
+                      }
+
+                  }, 1200);
               }
 
               void terminarJuego() {
 
-                  marcador.setText("Puntos: " + puntos);
-                  objeto.setText("🏅 ¡MISIÓN COMPLETADA!");
-                  mensaje.setText(
-                      "¡Excelente! Obtuviste " + puntos + " puntos"
+                  if (reloj != null) {
+                      reloj.cancel();
+                  }
+
+                  progreso.setText(
+                      "12 de 12 completadas"
                   );
-                  mensaje.setTextColor(Color.rgb(30, 120, 45));
 
-                  botones[0].setText("🔄 Jugar otra vez");
+                  temporizador.setText("🏁");
 
-                  botones[1].setVisibility(View.GONE);
-                  botones[2].setVisibility(View.GONE);
+                  objeto.setText(
+                      "🏅 MISIÓN COMPLETADA"
+                  );
+
+                  String rango;
+
+                  if (puntos >= 100) {
+
+                      rango =
+                          "🌟 Guardián del planeta";
+
+                  } else if (puntos >= 70) {
+
+                      rango =
+                          "♻️ Buen reciclador";
+
+                  } else {
+
+                      rango =
+                          "🌱 Sigue practicando";
+                  }
+
+                  mensaje.setText(
+                      "Puntaje final: " +
+                      puntos +
+                      " de 120\n\n" +
+                      rango
+                  );
+
+                  mensaje.setTextColor(
+                      Color.rgb(30, 115, 45)
+                  );
+
+                  botones[0].setText(
+                      "🔄 Jugar otra vez"
+                  );
+
+                  botones[1].setVisibility(
+                      View.GONE
+                  );
+
+                  botones[2].setVisibility(
+                      View.GONE
+                  );
 
                   bloqueado = false;
               }
 
               void reiniciar() {
 
+                  if (reloj != null) {
+                      reloj.cancel();
+                  }
+
                   ronda = 0;
                   puntos = 0;
+                  bloqueado = false;
 
-                  botones[0].setText("Orgánico");
-                  botones[1].setVisibility(View.VISIBLE);
-                  botones[2].setVisibility(View.VISIBLE);
+                  botones[0].setText(
+                      "🌱 Orgánico"
+                  );
+
+                  botones[1].setVisibility(
+                      View.VISIBLE
+                  );
+
+                  botones[2].setVisibility(
+                      View.VISIBLE
+                  );
 
                   mostrarPregunta();
+              }
+
+              @Override
+              protected void onDestroy() {
+
+                  if (reloj != null) {
+                      reloj.cancel();
+                  }
+
+                  super.onDestroy();
               }
           }
           EOF
@@ -291,5 +576,5 @@ jobs:
       - name: Guardar APK
         uses: actions/upload-artifact@v4
         with:
-          name: MisionReciclaje-APK
+          name: MisionReciclaje-APK-v2
           path: app/build/outputs/apk/debug/app-debug.apk
