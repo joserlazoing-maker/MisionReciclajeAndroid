@@ -69,8 +69,8 @@ jobs:
                   applicationId 'com.misionreciclaje.app'
                   minSdk 23
                   targetSdk 35
-                  versionCode 4
-                  versionName '4.0'
+                  versionCode 5
+                  versionName '5.0'
               }
 
               compileOptions {
@@ -198,34 +198,17 @@ jobs:
 
               @Override
               protected void onCreate(Bundle savedInstanceState) {
-
                   super.onCreate(savedInstanceState);
 
                   scroll = new ScrollView(this);
 
                   principal = new LinearLayout(this);
-
-                  principal.setOrientation(
-                      LinearLayout.VERTICAL
-                  );
-
-                  principal.setGravity(
-                      Gravity.CENTER_HORIZONTAL
-                  );
-
-                  principal.setPadding(
-                      34,
-                      38,
-                      34,
-                      40
-                  );
+                  principal.setOrientation(LinearLayout.VERTICAL);
+                  principal.setGravity(Gravity.CENTER_HORIZONTAL);
+                  principal.setPadding(34, 38, 34, 40);
 
                   principal.setBackgroundColor(
-                      Color.rgb(
-                          230,
-                          246,
-                          228
-                      )
+                      Color.rgb(230, 246, 228)
                   );
 
                   scroll.addView(principal);
@@ -356,6 +339,7 @@ jobs:
                   TextView reglas =
                       crearTexto(
                           "⏱️ 10 segundos por pregunta\n\n" +
+                          "🎯 Una sola oportunidad por residuo\n\n" +
                           "✅ Respuesta correcta: +10 puntos\n\n" +
                           "❌ Respuesta incorrecta: -5 puntos\n\n" +
                           "⌛ Tiempo agotado: -5 puntos",
@@ -384,17 +368,13 @@ jobs:
                       "▶  INICIAR MISIÓN"
                   );
 
-                  iniciar.setTextSize(
-                      20
-                  );
+                  iniciar.setTextSize(20);
 
                   iniciar.setTextColor(
                       Color.WHITE
                   );
 
-                  iniciar.setAllCaps(
-                      false
-                  );
+                  iniciar.setAllCaps(false);
 
                   iniciar.setTypeface(
                       null,
@@ -402,16 +382,10 @@ jobs:
                   );
 
                   iniciar.setBackgroundColor(
-                      Color.rgb(
-                          35,
-                          115,
-                          55
-                      )
+                      Color.rgb(35, 115, 55)
                   );
 
-                  iniciar.setMinHeight(
-                      120
-                  );
+                  iniciar.setMinHeight(120);
 
 
                   LinearLayout.LayoutParams parametros =
@@ -691,9 +665,7 @@ jobs:
                               (Integer)
                               v.getTag();
 
-                          responder(
-                              numero
-                          );
+                          responder(numero);
                       }
                   );
 
@@ -833,7 +805,7 @@ jobs:
 
                               mensaje.setText(
                                   "⌛ Tiempo agotado: -5 puntos\n" +
-                                  "Respuesta correcta: " +
+                                  "Respuesta: " +
                                   respuestaCorrecta()
                               );
 
@@ -860,6 +832,12 @@ jobs:
                       return;
                   }
 
+                  bloqueado = true;
+
+                  if (reloj != null) {
+                      reloj.cancel();
+                  }
+
 
                   if (
                       codigos[numero]
@@ -868,27 +846,16 @@ jobs:
                           )
                   ) {
 
-                      bloqueado = true;
-
-
-                      if (reloj != null) {
-                          reloj.cancel();
-                      }
-
-
                       puntos += 10;
-
 
                       marcador.setText(
                           "Puntos: " +
                           puntos
                       );
 
-
                       mensaje.setText(
                           "✅ ¡Correcto! +10 puntos"
                       );
-
 
                       mensaje.setTextColor(
                           Color.rgb(
@@ -898,11 +865,7 @@ jobs:
                           )
                       );
 
-
-                      avanzar();
-
                   } else {
-
 
                       puntos =
                           Math.max(
@@ -910,18 +873,15 @@ jobs:
                               puntos - 5
                           );
 
-
                       marcador.setText(
                           "Puntos: " +
                           puntos
                       );
 
-
                       mensaje.setText(
-                          "❌ -5 puntos\n" +
+                          "❌ Incorrecto: -5 puntos\n" +
                           explicaciones[ronda]
                       );
-
 
                       mensaje.setTextColor(
                           Color.rgb(
@@ -931,6 +891,8 @@ jobs:
                           )
                       );
                   }
+
+                  avanzar();
               }
 
 
@@ -1081,5 +1043,5 @@ jobs:
       - name: Guardar APK
         uses: actions/upload-artifact@v4
         with:
-          name: MisionReciclaje-APK-v4
+          name: MisionReciclaje-APK-v5
           path: app/build/outputs/apk/debug/app-debug.apk
